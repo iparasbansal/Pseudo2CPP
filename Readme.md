@@ -1,4 +1,4 @@
-# 🚀 Pseudo2CPP: Universal DSA Transpiler Engine v2.0
+# 🚀 Pseudo2CPP: Universal DSA Transpiler Engine
 
 An NLP-powered, intelligent C++ code generator designed for Competitive Programming and algorithmic problem-solving. **Pseudo2CPP** analyzes natural language problem statements, detects the underlying algorithmic intent using semantic scoring, and generates a fully optimized, submission-ready C++ boilerplate.
 
