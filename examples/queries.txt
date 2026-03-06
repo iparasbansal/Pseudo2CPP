@@ -1,0 +1,36 @@
+====================================================================
+TEST QUERIES FOR PSEUDO2CPP TRANSPILER
+Copy and paste these directly into the CLI prompt to test the engine.
+====================================================================
+
+[Query 1: The Ambiguous Graph vs DP Bitmask Trap]
+A traveling salesman needs to visit a small n number of cities (around 15) exactly once and return to the starting city. The goal is to find the minimum cost to complete this tour. We need an optimal assignment using masking.
+-> Expects: Dynamic Programming (DP Bitmask) - ~91% Confidence
+
+[Query 2: The Negative Cycle Detection]
+Find the shortest path from a source router to all other subnets in a directed graph network. However, some of the routing links have negative weights due to latency credits, so you must also detect if there is any negative cycle present.
+-> Expects: Graphs (Bellman-Ford) - ~92% Confidence
+
+[Query 3: The Tree "Shortest Path" Context Trick]
+I have a massive routing network structured as a tree. We need to find the shortest path and the distance between nodes for millions of queries. Normally I would use Dijkstra for the shortest path, but because this is a tree, I want to precompute the ancestor nodes to answer queries efficiently.
+-> Expects: Trees (LCA Binary Lifting) - ~92% Confidence
+
+[Query 4: Binary Search Optimization]
+I have a sorted array representing the coordinates of server racks. I need to allocate 'K' high-power switches among these racks such that the minimum distance between any two switches is maximized to prevent thermal throttling.
+-> Expects: Search & Math (Binary Search on Answer) - ~85% Confidence
+
+[Query 5: The "Search Engine" Autocomplete Trap]
+I am building an autocomplete feature for a text editor. I need a data structure that allows me to store a massive dictionary of words and quickly retrieve all matching strings that share a common prefix optimally.
+-> Expects: Strings (Trie) - ~88% Confidence
+
+[Query 6: The "Continuous Sensor" Dilemma]
+I am receiving a continuous, infinite stream of integer data from server temperature sensors. At any given moment, I need to fetch the median temperature in O(1) or O(log N) time without sorting the entire dataset again.
+-> Expects: Heaps & Hashing (Median in a Stream) - ~90% Confidence
+
+[Query 7: The "Plagiarism Checker" Logic]
+I need to find all occurrences of a specific pattern sequence within a massive text block. To avoid the worst-case O(N*M) time limit exceeded error, I want to use rolling hashes to match them.
+-> Expects: Strings (Rabin-Karp) - ~90% Confidence
+
+[Query 8: The "Skyline/Area" Puzzle]
+Find the largest rectangular area possible in a histogram where each bar has a width of 1 unit. I need an optimal O(N) solution using monotonic structures.
+-> Expects: Stacks & Queues (Histogram Area) - ~90% Confidence
