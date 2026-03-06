@@ -6,9 +6,6 @@ using namespace std;
 
 class SearchMathExpert {
 public:
-
-    /* --- 1. THE OA SPECIAL (Binary Search on Answer) --- */
-
     // Pattern: Find the maximum/minimum value such that check(mid) is true
     static string getBinarySearchOnAnswer() {
         return "// Complexity: O(log(Range) * Cost_of_Check)\n"
