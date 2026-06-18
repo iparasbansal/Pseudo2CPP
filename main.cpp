@@ -1,183 +1,320 @@
-#include <bits/stdc++.h>
+#include <filesystem>
 #include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 
+#include "AlgorithmRegistry.hpp"
+#include "Generator.hpp"
 #include "LogicAnalyzer.hpp"
 #include "Templates.hpp"
+#include "TranspilerCore.hpp"
 
 using namespace std;
+namespace fs = std::filesystem;
 
-/* ======================================================
-   ALGORITHM → TEMPLATE DISPATCHER
-   ====================================================== */
+struct CliOptions {
+    string query;
+    string inputFile;
+    string outputFile = "solution.cpp";
+    bool explain = false;
+    bool listAlgorithms = false;
+    bool help = false;
+};
 
-string generateExpertCode(AlgoType type) {
-
-    static unordered_map<AlgoType, function<string()>> dispatch = {
-
-        /* ---------- GRAPHS ---------- */
-        {AlgoType::DIJKSTRA, Templates::dijkstra},
-        {AlgoType::BFS, Templates::bfs},
-        {AlgoType::DFS, Templates::dfs},
-        {AlgoType::TOPO_SORT, Templates::topoSort},
-        {AlgoType::KRUSKAL, Templates::kruskal},
-        {AlgoType::BELLMAN_FORD, Templates::bellmanFord},
-        {AlgoType::FLOYD_WARSHALL, Templates::floydWarshall},
-        {AlgoType::TARJAN_SCC, Templates::tarjanSCC},
-
-        /* ---------- TREES ---------- */
-        {AlgoType::LCA_BINARY_LIFTING, Templates::lcaBinaryLifting},
-        {AlgoType::TREE_DIAMETER, Templates::treeDiameter},
-        {AlgoType::BURN_TREE, Templates::burnTree},
-        {AlgoType::MORRIS_TRAVERSAL, Templates::morrisTraversal},
-        {AlgoType::BST_VALIDATE, Templates::bstValidate},
-
-        /* ---------- DP ---------- */
-        {AlgoType::DP_KNAPSACK, Templates::knapsack01},
-        {AlgoType::DP_LCS, Templates::dpLCS},
-        {AlgoType::DP_LIS, Templates::dpLIS},
-        {AlgoType::DP_GRID_PATH, Templates::gridPathDP},
-        {AlgoType::DP_STOCK, Templates::stockDP},
-        {AlgoType::DP_PARTITION_MCM, Templates::partitionMCM},
-        {AlgoType::DP_TREE, Templates::treeDP},
-        {AlgoType::DP_BITMASK, Templates::bitmaskDP},
-        {AlgoType::DP_DIGIT, Templates::digitDP},
-        {AlgoType::MATRIX_EXP, Templates::matrixExp},
-
-        /* ---------- STACK / QUEUE ---------- */
-        {AlgoType::STACK_PARENTHESES, Templates::validParentheses},
-        {AlgoType::STACK_NGE, Templates::nextGreater},
-        {AlgoType::STACK_HISTOGRAM, Templates::histogramArea},
-        {AlgoType::SLIDING_WINDOW_MAX, Templates::slidingWindowMax},
-        {AlgoType::LRU_CACHE, Templates::lruCache},
-        {AlgoType::STACK_REMOVE_K, Templates::removeKDigits},
-
-        /* ---------- LINEAR ---------- */
-        {AlgoType::THREE_SUM, Templates::threeSum},
-        {AlgoType::TRAPPING_RAIN_WATER, Templates::trappingRainWater},
-        {AlgoType::CONTAINER_WATER, Templates::containerWithMostWater},
-        {AlgoType::SLIDING_WINDOW_VAR, Templates::slidingWindowVariable},
-
-        /* ---------- LINKED LIST ---------- */
-        {AlgoType::LL_REVERSE, Templates::reverseLL},
-        {AlgoType::LL_K_REVERSE, Templates::reverseKGroup},
-        {AlgoType::LL_CYCLE_DETECTION, Templates::detectCycle},
-        {AlgoType::LL_FLATTEN, Templates::flattenLL},
-        {AlgoType::LL_MERGE_SORT, Templates::mergeSortLL},
-
-        /* ---------- HEAP / HASH ---------- */
-        {AlgoType::HEAP_KTH_LARGEST, Templates::kthLargest},
-        {AlgoType::HEAP_MEDIAN_STREAM, Templates::medianInStream},
-        {AlgoType::HEAP_MERGE_K_LISTS, Templates::mergeKLists},
-        {AlgoType::HASH_SUBARRAY_SUM_K, Templates::subarraySumK},
-        {AlgoType::HASH_LONGEST_CONSECUTIVE, Templates::longestConsecutive},
-
-        /* ---------- STRINGS ---------- */
-        {AlgoType::STR_KMP, Templates::kmp},
-        {AlgoType::STR_Z_ALGO, Templates::zAlgo},
-        {AlgoType::STR_TRIE, Templates::trie},
-        {AlgoType::STR_MANACHER, Templates::manacher},
-        {AlgoType::STR_RABIN_KARP, Templates::rabinKarp},
-
-        /* ---------- MATH ---------- */
-        {AlgoType::MATH_BS_ON_ANSWER, Templates::bsOnAnswer},
-        {AlgoType::MATH_SIEVE, Templates::sieve},
-        {AlgoType::MATH_MOD_EXP, Templates::modExp},
-        {AlgoType::MATH_NCR, Templates::nCr},
-        {AlgoType::MATH_BIT_MANIP, Templates::bitManip}
-    };
-
-    if(dispatch.count(type))
-        return dispatch[type]();
-
-    return "// [!] No specific logic found. Please implement manually.\n";
+static void printUsage() {
+    cout << "Pseudo2CPP - Explainable DSA Transpiler\n\n"
+         << "Usage:\n"
+         << "  ./transpiler --query \"shortest path with negative weights\" [--explain]\n"
+         << "  ./transpiler --input examples/query.txt --output solution.cpp\n"
+         << "  ./transpiler --list-algorithms\n\n"
+         << "Options:\n"
+         << "  --query <text>          Analyze this problem statement.\n"
+         << "  --input <file>          Read the problem statement from a file.\n"
+         << "  --output <file>         Write generated C++ code here. Default: solution.cpp\n"
+         << "  --explain               Show matched signals and penalties.\n"
+         << "  --list-algorithms       Print supported algorithms and complexity metadata.\n"
+         << "  --help                  Show this help message.\n";
 }
 
-/* ======================================================
-   MAIN TRANSPILER ENGINE
-   ====================================================== */
+static bool parseArgs(int argc, char* argv[], CliOptions& options) {
+    for(int i = 1; i < argc; i++) {
+        string arg = argv[i];
 
-int main() {
+        if(arg == "--help" || arg == "-h") {
+            options.help = true;
+        } else if(arg == "--explain") {
+            options.explain = true;
+        } else if(arg == "--list-algorithms") {
+            options.listAlgorithms = true;
+        } else if(arg == "--query" || arg == "-q") {
+            if(i + 1 >= argc) {
+                cerr << "[!] Missing value for " << arg << "\n";
+                return false;
+            }
+            i++;
+            while(i < argc) {
+                string part = argv[i];
+                if(part.rfind("--", 0) == 0) {
+                    i--;
+                    break;
+                }
+                if(!options.query.empty()) options.query += " ";
+                options.query += part;
+                i++;
+            }
+        } else if(arg == "--input" || arg == "-i") {
+            if(i + 1 >= argc) {
+                cerr << "[!] Missing value for " << arg << "\n";
+                return false;
+            }
+            options.inputFile = argv[++i];
+        } else if(arg == "--output" || arg == "-o") {
+            if(i + 1 >= argc) {
+                cerr << "[!] Missing value for " << arg << "\n";
+                return false;
+            }
+            options.outputFile = argv[++i];
+        } else {
+            cerr << "[!] Unknown option: " << arg << "\n";
+            return false;
+        }
+    }
 
-    cout << "========================================================\n";
-    cout << "        UNIVERSAL DSA TRANSPILER ENGINE v2.0\n";
-    cout << "        Developed by Paras Bansal\n";
-    cout << "========================================================\n\n";
+    return true;
+}
 
-    string input;
+static string readFile(const string& path) {
+    ifstream fin(path);
+    if(!fin) return "";
 
-    cout << "[>] Enter pseudocode or problem statement:\n> ";
-    getline(cin, input);
+    stringstream buffer;
+    buffer << fin.rdbuf();
+    return buffer.str();
+}
 
-    cout << "\n[*] Analyzing Natural Language Syntax...\n";
+static void printAlgorithms() {
+    cout << "Supported Algorithms\n";
+    cout << "====================\n";
 
-    LogicAnalyzer analyzer;
+    for(const AlgorithmProfile& profile : AlgorithmRegistry::all()) {
+        cout << "- " << profile.name << " [" << profile.domain << "]\n"
+             << "  Time: " << profile.timeComplexity
+             << " | Space: " << profile.spaceComplexity << "\n"
+             << "  Use: " << profile.useCase << "\n";
+    }
+}
 
-    vector<IntentResult> ranked = analyzer.detectIntent(input);
+static void printSignals(const vector<string>& values, const string& label) {
+    if(values.empty()) return;
 
-    if(ranked.empty()) {
-        cout << "[!] Analyzer returned no results.\n";
+    cout << "    " << label << ": ";
+    for(size_t i = 0; i < values.size(); i++) {
+        if(i) cout << ", ";
+        cout << values[i];
+    }
+    cout << "\n";
+}
+
+static void printRankedResults(const vector<IntentResult>& ranked, bool explain) {
+    cout << "[*] Top intent matches:\n";
+
+    for(size_t i = 0; i < ranked.size(); i++) {
+        AlgorithmProfile profile = AlgorithmRegistry::get(ranked[i].type);
+
+        cout << "    " << i + 1 << ". " << profile.name
+             << " (" << ranked[i].domain << ")"
+             << " - " << ranked[i].confidence << "%"
+             << " [score: " << ranked[i].rawScore << "]\n";
+
+        if(explain) {
+            printSignals(ranked[i].matchedSignals, "matched");
+            printSignals(ranked[i].penalties, "penalties");
+        }
+    }
+}
+
+static string inputSkeleton(AlgoType type) {
+    switch(type) {
+        case AlgoType::DIJKSTRA:
+            return "    int n, m, src;\n"
+                   "    cin >> n >> m >> src;\n"
+                   "    vector<vector<pair<int,int>>> g(n);\n"
+                   "    for(int i = 0; i < m; i++) {\n"
+                   "        int u, v, w;\n"
+                   "        cin >> u >> v >> w;\n"
+                   "        g[u].push_back({v, w});\n"
+                   "    }\n"
+                   "    vector<ll> dist = dijkstra(n, g, src);\n";
+        case AlgoType::BFS:
+            return "    int n, m, src;\n"
+                   "    cin >> n >> m >> src;\n"
+                   "    vector<vector<int>> g(n);\n"
+                   "    for(int i = 0; i < m; i++) {\n"
+                   "        int u, v;\n"
+                   "        cin >> u >> v;\n"
+                   "        g[u].push_back(v);\n"
+                   "        g[v].push_back(u);\n"
+                   "    }\n"
+                   "    vector<int> dist = bfs(n, g, src);\n";
+        case AlgoType::BELLMAN_FORD:
+            return "    int n, m, src;\n"
+                   "    cin >> n >> m >> src;\n"
+                   "    vector<vector<int>> edges;\n"
+                   "    for(int i = 0; i < m; i++) {\n"
+                   "        int u, v, w;\n"
+                   "        cin >> u >> v >> w;\n"
+                   "        edges.push_back({u, v, w});\n"
+                   "    }\n"
+                   "    vector<ll> dist = bellmanFord(n, edges, src);\n";
+        case AlgoType::DP_KNAPSACK:
+            return "    int n, capacity;\n"
+                   "    cin >> n >> capacity;\n"
+                   "    vector<int> weight(n), value(n);\n"
+                   "    for(int i = 0; i < n; i++) cin >> weight[i];\n"
+                   "    for(int i = 0; i < n; i++) cin >> value[i];\n"
+                   "    cout << knapsack(capacity, weight, value, n) << '\\n';\n";
+        default:
+            return "    // TODO: read input and call the generated algorithm above.\n";
+    }
+}
+
+static bool shouldInvokeGeneratedSolve(const string& transpiled) {
+    return transpiled.find("template<") == string::npos &&
+           transpiled.find("auto solve(") != string::npos;
+}
+
+static string buildSolution(const IntentResult& bestIntent, const string& rawInput) {
+    AlgorithmProfile profile = AlgorithmRegistry::get(bestIntent.type);
+    string code;
+
+    code += Templates::header();
+    code += "// ==========================================\n";
+    code += "// Generated by Pseudo2CPP\n";
+    code += "// Algorithm: " + profile.name + "\n";
+    code += "// Domain: " + profile.domain + "\n";
+    code += "// Confidence: " + to_string(bestIntent.confidence) + "%\n";
+    code += "// Time: " + profile.timeComplexity + "\n";
+    code += "// Space: " + profile.spaceComplexity + "\n";
+    code += "// Use case: " + profile.useCase + "\n";
+    code += "// Warning: " + profile.warning + "\n";
+    code += "// ==========================================\n\n";
+
+    code += Generator::generate(bestIntent.type);
+
+    bool hasCustomSolve = false;
+    bool shouldCallSolve = true;
+
+    if (transpiler::TranspilerCore::containsStructuredCode(rawInput)) {
+        string transpiled = transpiler::TranspilerCore::transpile(rawInput);
+        hasCustomSolve = (transpiled.find("solve(") != string::npos);
+        shouldCallSolve = !hasCustomSolve || shouldInvokeGeneratedSolve(transpiled);
+        if (hasCustomSolve) {
+            code += "\n" + transpiled + "\n";
+        } else {
+            code += "\nvoid solve() {\n";
+            code += transpiled;
+            code += "}\n\n";
+        }
+    } else {
+        code += "\nvoid solve() {\n";
+        code += inputSkeleton(bestIntent.type);
+        code += "}\n\n";
+    }
+
+    code += "int main() {\n"
+            "    ios::sync_with_stdio(false);\n"
+            "    cin.tie(nullptr);\n\n"
+            "    int t = 1;\n"
+            "    // cin >> t;\n\n";
+
+    if (shouldCallSolve) {
+        code += "    while(t--) solve();\n";
+    } else {
+        code += "    // Custom transpiled solve() may require arguments or a custom driver.\n";
+    }
+
+    code += "    return 0;\n"
+            "}\n";
+
+    return code;
+}
+
+static bool writeSolution(const string& path, const string& code) {
+    fs::path outputPath(path);
+    if(outputPath.has_parent_path()) {
+        fs::create_directories(outputPath.parent_path());
+    }
+
+    ofstream fout(path, ios::trunc);
+    if(!fout) return false;
+
+    fout << code;
+    return true;
+}
+
+int main(int argc, char* argv[]) {
+    CliOptions options;
+    if(!parseArgs(argc, argv, options)) {
+        printUsage();
+        return 1;
+    }
+
+    if(options.help) {
+        printUsage();
         return 0;
     }
 
+    if(options.listAlgorithms) {
+        printAlgorithms();
+        return 0;
+    }
+
+    string input = options.query;
+
+    if(!options.inputFile.empty()) {
+        input = readFile(options.inputFile);
+        if(input.empty()) {
+            cerr << "[!] Could not read input file: " << options.inputFile << "\n";
+            return 1;
+        }
+    }
+
+    cout << "========================================================\n";
+    cout << "        PSEUDO2CPP EXPLAINABLE TRANSPILER\n";
+    cout << "========================================================\n\n";
+
+    if(input.empty()) {
+        cout << "[>] Enter pseudocode or problem statement:\n> ";
+        getline(cin, input);
+    }
+
+    LogicAnalyzer analyzer;
+    vector<IntentResult> ranked = analyzer.detectIntent(input);
+
+    if(ranked.empty() || ranked.front().type == AlgoType::NONE) {
+        cout << "[!] No confident intent found. Try adding constraints, data structure, or target operation.\n";
+        return 0;
+    }
+
+    printRankedResults(ranked, options.explain);
+
     IntentResult bestIntent = ranked.front();
+    AlgorithmProfile profile = AlgorithmRegistry::get(bestIntent.type);
 
-    cout << "[*] Semantic Mapping Complete.\n";
-    cout << "    - Target Domain: " << bestIntent.domain << "\n";
-    cout << "    - Confidence:   " << bestIntent.confidence << "%\n\n";
+    if(bestIntent.confidence < 45) {
+        cout << "\n[!] Low confidence result. Generated code is a starting point, not a final recommendation.\n";
+    }
 
-    cout << "[*] Generating Expert C++ Code...\n";
+    string solution = buildSolution(bestIntent, input);
+    if(!writeSolution(options.outputFile, solution)) {
+        cerr << "[!] Could not write output file: " << options.outputFile << "\n";
+        return 1;
+    }
 
-    string finalCode;
-
-    /* ---------- HEADER ---------- */
-
-    finalCode += Templates::header();
-
-    /* ---------- METADATA ---------- */
-
-    finalCode += "// ==========================================\n";
-    finalCode += "// Generated by Bansal Universal Transpiler\n";
-    finalCode += "// Domain: " + bestIntent.domain + "\n";
-    finalCode += "// Confidence: " + to_string(bestIntent.confidence) + "%\n";
-    finalCode += "// ==========================================\n\n";
-
-    /* ---------- ALGORITHM CODE ---------- */
-
-    finalCode += generateExpertCode(bestIntent.type);
-
-    /* ---------- CP BOILERPLATE ---------- */
-
-    finalCode += R"(
-
-void solve() {
-
-    // TODO: read input and call algorithm above
-
-}
-
-int main() {
-
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-    int t = 1;
-    // cin >> t;
-
-    while(t--)
-        solve();
-
-    return 0;
-}
-
-)";
-
-    /* ---------- WRITE FILE ---------- */
-
-    ofstream fout("solution.cpp", ios::trunc);
-    fout << finalCode;
-    fout.close();
-
-    cout << "[+] SUCCESS: solution.cpp generated successfully.\n";
+    cout << "\n[+] Selected: " << profile.name << "\n";
+    cout << "[+] Generated: " << options.outputFile << "\n";
     cout << "========================================================\n";
 
     return 0;

@@ -1,0 +1,12 @@
+// Problem description: Dijkstra unweighted shortest path
+// Custom pseudocode logic to be transpiled:
+
+function solve(arr, n) {
+    let sum = 0
+    for i from 0 to n - 1 {
+        if (arr[i] % 2 == 0) {
+            sum = sum + arr[i]
+        }
+    }
+    return sum
+}

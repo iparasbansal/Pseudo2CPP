@@ -1,44 +1,81 @@
-# 🚀 Pseudo2CPP: Universal DSA Transpiler Engine
+# Pseudo2CPP: Intent-Driven CP Boilerplate & Compiler Transpiler
 
-An NLP-powered, intelligent C++ code generator designed for Competitive Programming and algorithmic problem-solving. **Pseudo2CPP** analyzes natural language problem statements, detects the underlying algorithmic intent using semantic scoring, and generates a fully optimized, submission-ready C++ boilerplate.
+Pseudo2CPP is an offline C++17 command-line developer tool that acts as both an **Intent-Driven Algorithm Selector** and a **Structured Pseudocode Transpiler**. 
 
-
-**Developed by:** Paras Bansal
-**Github** https://github.com/iparasbansal
-**Portfolio** https://parasbansal-portfolio.vercel.app
-**LinkedIn** https://linkedin.com/in/iparasbansal
-**Codeforces** https://codeforces.com/profile/parasbansal
-**CodeChef** https://www.codechef.com/users/i_parasbansal
-**LeetCode** https://leetcode.com/u/iparasbansal/
-
+It maps natural-language competitive programming (CP) prompts to standard DSA algorithms and compiles custom pseudocode logic blocks into syntactically valid C++ templates.
 
 ---
 
-## ✨ Key Features
+## Features
 
-* **🧠 Semantic Intent Detection:** Uses a weighted NLP scoring system to understand problem descriptions (e.g., accurately distinguishing between "shortest path in unweighted graph" vs. "negative weight cycles").
-* **⚡ 50+ Expert Algorithms:** Pre-loaded with highly optimized `O(N)` and `O(log N)` C++ templates spanning Graphs, DP, Trees, Strings, Heaps, and Advanced Math.
-* **🛡️ Contextual Conflict Resolution:** Automatically resolves algorithmic ambiguity (e.g., applying heavy penalties to Dijkstra if the context explicitly mentions a "Tree" or "Negative Edges").
-* **⚙️ Decoupled Architecture:** Clean separation of concerns between the NLP Brain (`LogicAnalyzer`) and the Code Database (`Templates`), making the system highly modular and scalable.
-* **🏆 CP-Ready Output:** Generates a complete `solution.cpp` file equipped with Fast I/O, modular `solve()` functions, and test-case loops ready for Codeforces/LeetCode submission.
+- **Mathematical Intent Classifier**: Uses a Vector Space Model with **TF-IDF & Cosine Similarity** to match natural language problem descriptions to candidate algorithms.
+- **Fuzzy Token Matching**: Employs Levenshtein edit distance word-by-word against the vocabulary.
+- **Domain Context Multipliers**: Adjusts scoring weights dynamically based on domain context clues (Trees, Graphs, Strings, Lists).
+- **Softmax Confidence Scaling**: Evaluates top classification candidates using a Softmax probability distribution.
+- **Compiler Transpiler Frontend**: Includes a built-in Lexical Analyzer and Recursive Descent Parser that translates structured pseudocode statements into clean, template-safe C++17.
+- **Modern C++ Generation**: Resolves dynamic parameters using C++ templates and automatic type inference (`auto`), eliminating the need for explicit type annotations in the pseudocode.
 
 ---
 
-## 🏗️ System Architecture
+## Quick Start
 
-The transpiler follows a highly modular, 3-tier architectural pattern:
+1. **Build the Engine & Run Tests**:
+   ```bash
+   make clean && make && make test
+   ```
 
-1. **The Brain (`LogicAnalyzer.hpp`):** Normalizes input synonyms, applies domain-specific contextual boosts/penalties, and calculates a percentage-based **Confidence Score** for the predicted algorithm.
-2. **The Muscle (`Templates.hpp` & Expert Modules):** A comprehensive database of optimized C++ snippets utilizing modern C++17 features.
-3. **The Glue (`main.cpp` & `Generator.hpp`):** The CLI entry point that acts as a Factory, linking the detected intent to the specific template and injecting competitive programming boilerplate.
+2. **Select an Algorithm from Natural Language Query**:
+   ```bash
+   ./transpiler --query "cheapest route between cities with negative tolls" --explain
+   ```
 
-### 📂 Directory Structure
+3. **Transpile Custom Pseudocode Block**:
+   ```bash
+   ./transpiler --input examples/custom_logic.txt --output solution.cpp
+   ```
+
+---
+
+## Supported Pseudocode Grammar
+
+The transpiler parses and compiles structured pseudocode matching the following syntax:
+
+* **Functions**: `function solve(arr, n) { ... }` $\rightarrow$ transpiles to standard C++ templates (`template<typename T_arr, typename T_n> auto solve(T_arr arr, T_n n)`).
+* **Variable Declarations**: `let sum = 0` $\rightarrow$ `auto sum = 0;`.
+* **Loops**:
+  * `for i from 0 to n - 1 { ... }` $\rightarrow$ `for (int i = 0; i <= (n - 1); i++) { ... }`.
+  * `while x < 100 { ... }` $\rightarrow$ `while (x < 100) { ... }`.
+* **Conditionals**: `if (x % 2 == 0) { ... } else { ... }` $\rightarrow$ `if ((x % 2 == 0)) { ... } else { ... }`.
+* **Functions & Returns**: `return x` $\rightarrow$ `return x;`.
+
+---
+
+## Architecture
+
 ```text
-Pseudo2CPP/
-├── LogicAnalyzer.hpp    # NLP & Semantic Scoring Engine
-├── Generator.hpp        # Algorithm-to-Template Router
-├── Templates.hpp        # Core Logic & Code Snippets
-├── main.cpp             # CLI Engine & Boilerplate Injector
-├── Makefile             # Build automation
-└── examples/            
-    └── queries.txt      # Sample complex queries for testing
+LogicAnalyzer.hpp      TF-IDF and Cosine Similarity intent engine
+TranspilerCore.hpp     Compiler frontend (Lexer, Parser, AST, C++ Code Gen)
+AlgorithmRegistry.hpp  DSA algorithm metadata registry
+Generator.hpp          Algorithm-to-template generator routing
+Templates.hpp          C++ algorithm boilerplate template database
+main.cpp               CLI parser and generated code integration pipeline
+tests/                 Intent classification and compiler translation unit tests
+examples/              Sample CP prompts and custom pseudocode scripts
+```
+
+---
+
+## Build Commands
+
+```bash
+make          # build transpiler CLI
+make test     # run both intent matching and compiler test suites
+make list     # print supported algorithms and complexities
+make clean    # remove build objects and executables
+```
+
+---
+
+## Author
+
+Developed by Paras Bansal.
