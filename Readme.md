@@ -1,4 +1,4 @@
-# Pseudo2CPP: Intent-Driven CP Boilerplate & Compiler Transpiler
+# 🚀 Pseudo2CPP: Intent-Driven CP Boilerplate & Compiler Transpiler
 
 Pseudo2CPP is an offline C++17 command-line developer tool that acts as both an **Intent-Driven Algorithm Selector** and a **Structured Pseudocode Transpiler**. 
 
